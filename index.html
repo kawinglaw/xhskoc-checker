@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书 KOC 资源查重工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        * {
+            font-family: 'PingFang SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        .slide-up-fade-in {
+            animation: slideUpFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        @keyframes slideUpFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .input-focus-ring:focus {
+            box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.15);
+        }
+        
+        .btn-hover-scale:active {
+            transform: scale(0.97);
+        }
+        
+        .theme-transition {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        /* 深色主题 */
+        .dark-theme {
+            background-color: #1a1a1a;
+            color: #f8fafc;
+        }
+        
+        .dark-theme .card-bg {
+            background-color: #2a2a2a;
+        }
+        
+        .dark-theme .input-bg {
+            background-color: #333333;
+            color: #f8fafc;
+        }
+        
+        .dark-theme .input-bg::placeholder {
+            color: #888888;
+        }
+        
+        .dark-theme .dropdown-bg {
+            background-color: rgba(42, 42, 42, 0.95);
+            border-color: #444444;
+        }
+        
+        .dark-theme .result-hit {
+            background-color: rgba(255, 36, 66, 0.1);
+            border-left: 4px solid #ff2442;
+        }
+        
+        .dark-theme .result-miss {
+            background-color: rgba(34, 197, 94, 0.1);
+            border-left: 4px solid #22c55e;
+        }
+        
+        /* 浅色主题 */
+        .light-theme {
+            background-color: #f8fafc;
+            color: #1a1a1a;
+        }
+        
+        .light-theme .card-bg {
+            background-color: #ffffff;
+        }
+        
+        .light-theme .input-bg {
+            background-color: #f1f5f9;
+            color: #1a1a1a;
+        }
+        
+        .light-theme .input-bg::placeholder {
+            color: #94a3b8;
+        }
+        
+        .light-theme .dropdown-bg {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-color: #e2e8f0;
+        }
+        
+        .light-theme .result-hit {
+            background-color: rgba(255, 36, 66, 0.08);
+            border-left: 4px solid #ff2442;
+        }
+        
+        .light-theme .result-miss {
+            background-color: rgba(34, 197, 94, 0.08);
+            border-left: 4px solid #22c55e;
+        }
+    </style>
+</head>
+<body class="dark-theme theme-transition min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-2xl">
+        <!-- 主题切换按钮 -->
+        <div class="flex justify-end mb-4">
+            <button id="theme-toggle" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80 card-bg shadow-lg">
+                <span id="theme-icon">🌙</span>
+                <span id="theme-text" class="ml-2">切换主题</span>
+            </button>
+        </div>
+        
+        <!-- 主卡片 -->
+        <div class="card-bg rounded-[2.5rem] shadow-2xl p-8 md:p-12 theme-transition">
+            <!-- 标题区域 -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl md:text-4xl font-semibold mb-3 tracking-tight">KOC 资源查重</h1>
+                <p class="text-sm opacity-60">输入昵称快速查询是否已建联</p>
+                <p id="data-update-time" class="text-xs mt-2 opacity-40"></p>
+            </div>
+            
+            <!-- 搜索区域 -->
+            <div class="relative mb-6">
+                <input 
+                    type="text" 
+                    id="search-input" 
+                    placeholder="输入 KOC 昵称..." 
+                    class="input-bg w-full px-6 py-4 rounded-2xl text-lg outline-none input-focus-ring theme-transition"
+                    autocomplete="off"
+                >
+                
+                <!-- 联想下拉列表 -->
+                <div id="suggestions-dropdown" class="hidden absolute top-full left-0 right-0 mt-2 rounded-xl shadow-xl dropdown-bg glass-effect z-50 max-h-64 overflow-y-auto">
+                    <!-- 动态填充 -->
+                </div>
+            </div>
+            
+            <!-- 查询按钮 -->
+            <button 
+                id="search-btn" 
+                class="w-full bg-[#ff2442] hover:bg-[#e02038] text-white font-medium py-4 rounded-2xl text-lg btn-hover-scale transition-all duration-200 shadow-lg"
+            >
+                查询
+            </button>
+            
+            <!-- 结果展示区域 -->
+            <div id="result-container" class="mt-6 hidden">
+                <!-- 动态填充 -->
+            </div>
+        </div>
+        
+        <!-- 底部说明 -->
+        <div class="text-center mt-6 text-xs opacity-40">
+            <p>数据来源于 data.csv · 每次打开自动刷新</p>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let kocData = [];
+        let currentTheme = 'dark';
+        
+        // DOM 元素
+        const searchInput = document.getElementById('search-input');
+        const searchBtn = document.getElementById('search-btn');
+        const suggestionsDropdown = document.getElementById('suggestions-dropdown');
+        const resultContainer = document.getElementById('result-container');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeText = document.getElementById('theme-text');
+        const dataUpdateTime = document.getElementById('data-update-time');
+        
+        // 初始化
+        async function init() {
+            await loadCSVData();
+            setupEventListeners();
+            updateDataTimeDisplay();
+        }
+        
+        // 加载 CSV 数据
+        async function loadCSVData() {
+            try {
+                const timestamp = new Date().getTime();
+                const response = await fetch(`./data.csv?t=${timestamp}`);
+                const csvText = await response.text();
+                
+                Papa.parse(csvText, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(results) {
+                        kocData = results.data.filter(row => row['昵称'] && row['主页链接']);
+                        console.log(`成功加载 ${kocData.length} 条 KOC 数据`);
+                    },
+                    error: function(error) {
+                        console.error('CSV 解析失败:', error);
+                    }
+                });
+            } catch (error) {
+                console.error('加载 CSV 失败:', error);
+                showResult('error', '数据加载失败，请检查 data.csv 文件是否存在');
+            }
+        }
+        
+        // 设置事件监听
+        function setupEventListeners() {
+            // 输入框实时联想
+            searchInput.addEventListener('input', handleInput);
+            
+            // 查询按钮点击
+            searchBtn.addEventListener('click', handleSearch);
+            
+            // 回车键查询
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+            
+            // 点击外部关闭下拉列表
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+                    hideSuggestions();
+                }
+            });
+            
+            // 主题切换
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+        
+        // 处理输入（联想）
+        function handleInput(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // 模糊匹配：昵称包含输入字符
+            const matches = kocData.filter(item => 
+                item['昵称'].toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 10);
+            
+            if (matches.length > 0) {
+                showSuggestions(matches, query);
+            } else {
+                hideSuggestions();
+            }
+        }
+        
+        // 显示联想列表
+        function showSuggestions(matches, query) {
+            suggestionsDropdown.innerHTML = '';
+            
+            matches.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'px-6 py-3 cursor-pointer hover:opacity-70 transition-opacity theme-transition border-b border-opacity-10 border-gray-500 last:border-b-0';
+                
+                // 高亮匹配部分
+                const nickname = item['昵称'];
+                const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                const highlighted = nickname.replace(regex, '<span class="font-semibold text-[#ff2442]">$1</span>');
+                
+                div.innerHTML = `<span class="text-sm">${highlighted}</span>`;
+                
+                div.addEventListener('click', () => {
+                    searchInput.value = nickname;
+                    hideSuggestions();
+                    performSearch(nickname);
+                });
+                
+                suggestionsDropdown.appendChild(div);
+            });
+            
+            suggestionsDropdown.classList.remove('hidden');
+        }
+        
+        // 隐藏联想列表
+        function hideSuggestions() {
+            suggestionsDropdown.classList.add('hidden');
+        }
+        
+        // 处理查询
+        function handleSearch() {
+            const query = searchInput.value.trim();
+            if (query.length === 0) {
+                showResult('warning', '请输入 KOC 昵称');
+                return;
+            }
+            hideSuggestions();
+            performSearch(query);
+        }
+        
+        // 执行精确匹配查询
+        function performSearch(query) {
+            const exactMatch = kocData.find(item => item['昵称'] === query);
+            
+            if (exactMatch) {
+                showResult('hit', exactMatch);
+            } else {
+                showResult('miss', null, query);
+            }
+        }
+        
+        // 显示结果
+        function showResult(type, data, query = '') {
+            resultContainer.classList.remove('hidden');
+            resultContainer.innerHTML = '';
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `rounded-2xl p-6 slide-up-fade-in theme-transition ${
+                type === 'hit' ? 'result-hit' : 
+                type === 'miss' ? 'result-miss' : 
+                'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500'
+            }`;
+            
+            if (type === 'hit') {
+                resultDiv.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="text-2xl">✅</div>
+                        <div class="flex-1">
+                            <p class="text-lg font-medium mb-2">该KOC已建联</p>
+                            <a 
+                                href="${data['主页链接']}" 
+                                target="_blank" 
+                                class="inline-block text-[#ff2442] underline hover:no-underline transition-all"
+                            >
+                                ${data['昵称']} → 查看主页
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'miss') {
+                resultDiv.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="text-2xl">🎯</div>
+                        <div class="flex-1">
+                            <p class="text-lg font-medium">该KOC未建联，去拓吧！</p>
+                            <p class="text-sm mt-2 opacity-60">"${query}" 不在当前数据库中</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="text-2xl">⚠️</div>
+                        <div class="flex-1">
+                            <p class="text-lg font-medium">${data}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            resultContainer.appendChild(resultDiv);
+        }
+        
+        // 主题切换
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            
+            if (currentTheme === 'light') {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = '深色模式';
+            } else {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
+                themeIcon.textContent = '🌙';
+                themeText.textContent = '浅色模式';
+            }
+        }
+        
+        // 更新数据显示时间
+        function updateDataTimeDisplay() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            dataUpdateTime.textContent = `数据更新时间：${timeStr}`;
+        }
+        
+        // 转义正则特殊字符
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // 启动应用
+        init();
+    </script>
+</body>
+</html>
