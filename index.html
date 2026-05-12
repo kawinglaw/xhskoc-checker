@@ -42,17 +42,13 @@
             color: #fafafa;
         }
         
-        .dark-theme .input-line {
-            border-bottom-color: rgba(255, 255, 255, 0.2);
+        .dark-theme .search-box {
+            background-color: rgba(255, 255, 255, 0.08);
             color: #fafafa;
         }
         
-        .dark-theme .input-line::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-        }
-        
-        .dark-theme .input-line:focus {
-            border-bottom-color: #ff2442;
+        .dark-theme .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.35);
         }
         
         .dark-theme .dropdown-bg {
@@ -76,17 +72,13 @@
             color: #1a1a1a;
         }
         
-        .light-theme .input-line {
-            border-bottom-color: rgba(0, 0, 0, 0.15);
+        .light-theme .search-box {
+            background-color: rgba(0, 0, 0, 0.06);
             color: #1a1a1a;
         }
         
-        .light-theme .input-line::placeholder {
+        .light-theme .search-box::placeholder {
             color: rgba(0, 0, 0, 0.35);
-        }
-        
-        .light-theme .input-line:focus {
-            border-bottom-color: #ff2442;
         }
         
         .light-theme .dropdown-bg {
@@ -136,8 +128,8 @@
     </style>
 </head>
 <body class="dark-theme theme-transition min-h-screen flex flex-col items-center justify-center p-6">
-   <!-- 主题切换按钮 -->
-   <button id="theme-toggle" class="theme-toggle-btn absolute top-6 right-6">
+    <!-- 主题切换按钮 -->
+    <button id="theme-toggle" class="theme-toggle-btn absolute top-6 right-6">
         <span id="theme-icon">🌙</span>
         <span id="theme-text" class="ml-2">深色模式</span>
     </button>
@@ -145,48 +137,39 @@
     <!-- 主容器 - 严格居中 -->
     <div class="w-full max-w-md text-center">
         <!-- 标题 -->
-        <h1 class="text-4xl md:text-5xl font-semibold mb-4 tracking-tight">KOC 资源查重</h1>
-       <p class="text-sm opacity-40 mb-2">输入昵称快速查询是否已建联</p>
-       <p id="data-update-time" class="text-xs opacity-30"></p>
+        <h1 class="text-2xl md:text-3xl font-semibold mb-4 tracking-tight">🍠小红书 KOC 号段查重🔍</h1>
+       <p class="text-sm opacity-40 mb-8">输入昵称快速查询是否已建联</p>
         
-        <!-- 间距 -->
-        <div class="h-10"></div>
-        
-        <!-- 输入框 - 极简底线风格 -->
-       <input 
-            type="text" 
-            id="search-input" 
-            placeholder="输入 KOC 昵称..." 
-            class="input-line w-full px-4 py-4 bg-transparent text-lg outline-none theme-transition"
-            autocomplete="off"
-            style="border-bottom: 1px solid;"
-        >
+        <!-- 输入框 - 浅灰色圆角搜索框带搜索 icon -->
+        <div class="relative mb-8">
+            <input 
+                type="text" 
+                id="search-input" 
+                placeholder="请输出小红书昵称" 
+                class="search-box w-full px-5 py-4 pr-12 rounded-2xl text-lg outline-none theme-transition"
+                autocomplete="off"
+            >
+            <svg class="absolute right-4 top-1/2 transform -translate-y-1/2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
         
         <!-- 联想下拉列表 -->
         <div id="suggestions-dropdown" class="hidden absolute left-0 right-0 mt-1 rounded-xl shadow-2xl dropdown-bg z-50 max-h-72 overflow-y-auto" style="max-width: 28rem; margin-left: auto; margin-right: auto;">
             <!-- 动态填充 -->
         </div>
         
-        <!-- 间距 -->
-        <div class="h-8"></div>
-        
-        <!-- 查询按钮 -->
-        <button 
-            id="search-btn" 
-            class="w-full bg-[#ff2442] hover:bg-[#e02038] text-white font-medium py-4 rounded-full text-lg btn-hover-scale transition-all duration-200 shadow-lg shadow-red-500/25"
-        >
-            查询
-        </button>
-        
-        <!-- 结果展示区域 - 无背景框，直接浮现 -->
-        <div id="result-container" class="mt-10 hidden">
-           <!-- 动态填充 -->
+       <!-- 结果展示区域 - 无背景框，直接浮现 -->
+        <div id="result-container" class="mt-8 hidden">
+          <!-- 动态填充 -->
         </div>
     </div>
     
     <!-- 底部说明 -->
     <div class="absolute bottom-6 text-center text-xs opacity-25">
-        <p>数据来源于 data.csv · 每次打开自动刷新</p>
+       <p id="data-update-time"></p>
+       <p class="mt-1">数据来源于 data.csv · 每次打开自动刷新</p>
     </div>
 
     <script>
@@ -196,7 +179,6 @@
         
         // DOM 元素
         const searchInput = document.getElementById('search-input');
-        const searchBtn = document.getElementById('search-btn');
         const suggestionsDropdown = document.getElementById('suggestions-dropdown');
         const resultContainer = document.getElementById('result-container');
         const themeToggle = document.getElementById('theme-toggle');
@@ -245,9 +227,6 @@
         function setupEventListeners() {
             // 输入框实时联想
             searchInput.addEventListener('input', handleInput);
-            
-            // 查询按钮点击
-            searchBtn.addEventListener('click', handleSearch);
             
             // 回车键查询
             searchInput.addEventListener('keypress', (e) => {
@@ -365,25 +344,25 @@
             if (type === 'hit') {
                 // 已建联：红色状态文字 + Ghost Button
                 resultDiv.innerHTML = `
-                   <p style="color: #ff2442; font-size: 18px; font-weight: 500; margin-bottom: 20px;">该 KOC 已建联</p>
-                    <a 
+                  <p style="color: #ff2442; font-size: 18px; font-weight: 500; margin-bottom: 20px;">📨该号段已在库内，继续找号吧！</p>
+                   <a 
                         href="${data['主页链接']}" 
                         target="_blank" 
                         class="ghost-btn inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-200"
                     >
-                        <span>访问小红书主页</span>
+                        <span>点击访问小红书主页</span>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                             <polyline points="15 3 21 3 21 9"></polyline>
                             <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                     </a>
                 `;
             } else if (type === 'miss') {
-                // 未建联：柔和灰色文字
+                // 未建联：绿色加粗文字
                 resultDiv.innerHTML = `
-                    <p style="color: ${currentTheme === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.45)'}; font-size: 16px; font-weight: 400;">
-                        该 KOC 未建联，可拓
+                    <p style="color: #22c55e; font-size: 18px; font-weight: 600;">
+                        🥹该号段尚未建联，快去私信吧！
                     </p>
                 `;
             } else if (type === 'warning') {
