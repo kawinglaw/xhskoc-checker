@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-   <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>小红书 KOC 资源查重工具</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+   <script src="https://cdn.tailwindcss.com"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         * {
             font-family: 'PingFang SC', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         
         .slide-up-fade-in {
-            animation: slideUpFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: slideUpFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
         @keyframes slideUpFadeIn {
             from {
                 opacity: 0;
-                transform: translateY(24px);
+                transform: translateY(16px);
             }
             to {
                 opacity: 1;
@@ -33,12 +33,35 @@
         }
         
         .theme-transition {
-            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        
+        /* 浅色主题 */
+        .light-theme {
+            background-color: #fcf7f8;
+            color: #1a1a1a;
+        }
+        
+        .light-theme .search-box {
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #1a1a1a;
+        }
+        
+        .light-theme .search-box::placeholder {
+            color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .light-theme .dropdown-bg {
+            background-color: rgba(255, 255, 255, 0.98);
+        }
+        
+        .light-theme .result-text-miss {
+            color: #41ea98;
         }
         
         /* 深色主题 */
         .dark-theme {
-            background-color: #0a0a0a;
+            background-color: #1b1e26;
             color: #fafafa;
         }
         
@@ -52,51 +75,14 @@
         }
         
         .dark-theme .dropdown-bg {
-            background-color: rgba(20, 20, 20, 0.98);
+            background-color: rgba(35, 38, 46, 0.98);
         }
         
-        .dark-theme .ghost-btn {
-            background-color: rgba(255, 36, 66, 0.08);
-            border-color: rgba(255, 36, 66, 0.3);
-            color: #ff2442;
+        .dark-theme .result-text-miss {
+            color: #41ea98;
         }
         
-        .dark-theme .ghost-btn:hover {
-            background-color: rgba(255, 36, 66, 0.12);
-            border-color: rgba(255, 36, 66, 0.5);
-        }
-        
-        /* 浅色主题 */
-        .light-theme {
-            background-color: #fafafa;
-            color: #1a1a1a;
-        }
-        
-        .light-theme .search-box {
-            background-color: rgba(0, 0, 0, 0.06);
-            color: #1a1a1a;
-        }
-        
-        .light-theme .search-box::placeholder {
-            color: rgba(0, 0, 0, 0.35);
-        }
-        
-        .light-theme .dropdown-bg {
-            background-color: rgba(255, 255, 255, 0.98);
-        }
-        
-        .light-theme .ghost-btn {
-            background-color: rgba(255, 36, 66, 0.06);
-            border-color: rgba(255, 36, 66, 0.25);
-            color: #ff2442;
-        }
-        
-        .light-theme .ghost-btn:hover {
-            background-color: rgba(255, 36, 66, 0.1);
-            border-color: rgba(255, 36, 66, 0.4);
-        }
-        
-        /* 主题切换按钮 - 无边框极简风格 */
+        /* 主题切换按钮 */
         .theme-toggle-btn {
             background: transparent;
             border: none;
@@ -125,57 +111,74 @@
             background-color: rgba(0, 0, 0, 0.06);
             color: rgba(0, 0, 0, 0.8);
         }
+        
+        /* 结果区域固定高度容器 - 防止跳动 */
+        .result-fixed-container {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
-<body class="dark-theme theme-transition min-h-screen flex flex-col items-center justify-center p-6">
+<body class="light-theme theme-transition min-h-screen flex flex-col items-center justify-center p-6">
     <!-- 主题切换按钮 -->
     <button id="theme-toggle" class="theme-toggle-btn absolute top-6 right-6">
-        <span id="theme-icon">🌙</span>
-        <span id="theme-text" class="ml-2">深色模式</span>
+        <span id="theme-icon">☀️</span>
+       <span id="theme-text" class="ml-2">浅色模式</span>
     </button>
     
-    <!-- 主容器 - 严格居中 -->
-    <div class="w-full max-w-md text-center">
-        <!-- 标题 -->
-        <h1 class="text-2xl md:text-3xl font-semibold mb-4 tracking-tight">🍠小红书 KOC 号段查重🔍</h1>
-       <p class="text-sm opacity-40 mb-8">输入昵称快速查询是否已建联</p>
+   <!-- 主容器 - 严格居中 -->
+    <div class="w-full flex flex-col items-center" style="margin-top: -40px;">
+       <!-- 标题区域 - 🍠 大图标 + 标题 + 副标题 -->
+       <div class="mb-12 text-center">
+            <!-- 🍠 大图标 -->
+            <div class="text-6xl mb-4">🍠</div>
+            <!-- 主标题 -->
+           <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">KOC号段查重工具</h1>
+            <!-- 副标题 -->
+            <p class="text-sm opacity-40">输入昵称快速查询是否已建联</p>
+        </div>
         
-        <!-- 输入框 - 浅灰色圆角搜索框带搜索 icon -->
-        <div class="relative mb-8">
+        <!-- 搜索框 - 精致胶囊状 -->
+        <div class="relative mb-0" style="width: 380px;">
             <input 
                 type="text" 
                 id="search-input" 
-                placeholder="请输出小红书昵称" 
-                class="search-box w-full px-5 py-4 pr-12 rounded-2xl text-lg outline-none theme-transition"
+                placeholder="请输入小红书昵称" 
+                class="search-box w-full px-6 py-4 pr-12 rounded-full text-base outline-none theme-transition"
+                style="border-radius: 9999px;"
                 autocomplete="off"
             >
-            <svg class="absolute right-4 top-1/2 transform -translate-y-1/2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <svg class="absolute right-5 top-1/2 transform -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+               <circle cx="11" cy="11" r="8"></circle>
+               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
         </div>
         
         <!-- 联想下拉列表 -->
-        <div id="suggestions-dropdown" class="hidden absolute left-0 right-0 mt-1 rounded-xl shadow-2xl dropdown-bg z-50 max-h-72 overflow-y-auto" style="max-width: 28rem; margin-left: auto; margin-right: auto;">
-            <!-- 动态填充 -->
+        <div id="suggestions-dropdown" class="hidden absolute left-0 right-0 mt-2 rounded-xl shadow-2xl dropdown-bg z-50 max-h-72 overflow-y-auto" style="max-width: 380px; margin-left: auto; margin-right: auto;">
+           <!-- 动态填充 -->
         </div>
         
-       <!-- 结果展示区域 - 无背景框，直接浮现 -->
-        <div id="result-container" class="mt-8 hidden">
-          <!-- 动态填充 -->
+        <!-- 结果展示区域 - 固定高度预留空间 -->
+        <div class="result-fixed-container">
+            <div id="result-container" class="w-full" style="max-width: 380px;">
+                <!-- 动态填充 -->
+            </div>
         </div>
     </div>
     
-    <!-- 底部说明 -->
+   <!-- 底部说明 -->
     <div class="absolute bottom-6 text-center text-xs opacity-25">
-       <p id="data-update-time"></p>
-       <p class="mt-1">数据来源于 data.csv · 每次打开自动刷新</p>
+        <p id="data-update-time"></p>
+        <p class="mt-1">数据来源于 data.csv · 每次打开自动刷新</p>
     </div>
 
     <script>
         // 全局变量
         let kocData = [];
-        let currentTheme = 'dark';
+        let currentTheme = 'light';
         
         // DOM 元素
         const searchInput = document.getElementById('search-input');
@@ -335,39 +338,39 @@
         
         // 显示结果
         function showResult(type, data, query = '') {
-            resultContainer.classList.remove('hidden');
             resultContainer.innerHTML = '';
             
             const resultDiv = document.createElement('div');
-            resultDiv.className = 'slide-up-fade-in';
+            resultDiv.className = 'slide-up-fade-in w-full flex flex-col items-center';
             
             if (type === 'hit') {
-                // 已建联：红色状态文字 + Ghost Button
+                // 已建联：红色状态文字 + 浅粉色按钮
                 resultDiv.innerHTML = `
-                  <p style="color: #ff2442; font-size: 18px; font-weight: 500; margin-bottom: 20px;">📨该号段已在库内，继续找号吧！</p>
+                   <p style="color: #ff2442; font-size: 17px; font-weight: 600; margin-bottom: 16px;">📨该号段已在库内，继续找号吧！</p>
                    <a 
                         href="${data['主页链接']}" 
                         target="_blank" 
-                        class="ghost-btn inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-200"
+                        class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 btn-hover-scale"
+                        style="background-color: #FFF1F2; color: #ff2442; box-shadow: 0 2px 8px rgba(255, 36, 66, 0.15);"
                     >
                         <span>点击访问小红书主页</span>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                           <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                             <polyline points="15 3 21 3 21 9"></polyline>
                             <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                     </a>
                 `;
             } else if (type === 'miss') {
-                // 未建联：绿色加粗文字
+                // 未建联：高级绿色文字
                 resultDiv.innerHTML = `
-                    <p style="color: #22c55e; font-size: 18px; font-weight: 600;">
+                    <p class="result-text-miss" style="font-size: 17px; font-weight: 600;">
                         🥹该号段尚未建联，快去私信吧！
                     </p>
                 `;
             } else if (type === 'warning') {
                 resultDiv.innerHTML = `
-                   <p style="color: ${currentTheme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}; font-size: 15px;">
+                    <p style="color: ${currentTheme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}; font-size: 15px;">
                         ${data}
                     </p>
                 `;
@@ -385,18 +388,18 @@
         
         // 主题切换
         function toggleTheme() {
-            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
             
-            if (currentTheme === 'light') {
-                document.body.classList.remove('dark-theme');
-                document.body.classList.add('light-theme');
-                themeIcon.textContent = '☀️';
-                themeText.textContent = '浅色模式';
-            } else {
+            if (currentTheme === 'dark') {
                 document.body.classList.remove('light-theme');
                 document.body.classList.add('dark-theme');
                 themeIcon.textContent = '🌙';
                 themeText.textContent = '深色模式';
+            } else {
+                document.body.classList.remove('dark-theme');
+                document.body.classList.add('light-theme');
+                themeIcon.textContent = '☀️';
+                themeText.textContent = '浅色模式';
             }
         }
         
