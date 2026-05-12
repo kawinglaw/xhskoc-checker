@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小红书 KOC 资源查重工具</title>
+   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KOC 号段查重工具</title>
    <script src="https://cdn.tailwindcss.com"></script>
    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -33,17 +33,24 @@
         }
         
         .theme-transition {
-            transition: background-color 0.4s ease, color 0.4s ease;
+            transition: background 0.6s ease, color 0.5s ease;
         }
         
-        /* 浅色主题 */
+        /* 浅色主题 - 梦幻极光（Pink + Yellow + Soft Violet）*/
         .light-theme {
-            background-color: #fcf7f8;
+            background: 
+                radial-gradient(at 10% 10%, rgba(255, 230, 235, 0.6) 0%, transparent 40%),
+                radial-gradient(at 90% 10%, rgba(255, 251, 235, 0.7) 0%, transparent 40%),
+                radial-gradient(at 50% 90%, rgba(243, 232, 255, 0.5) 0%, transparent 50%),
+                #fafaf9;
             color: #1a1a1a;
         }
         
         .light-theme .search-box {
-            background-color: rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.35);
             color: #1a1a1a;
         }
         
@@ -52,21 +59,31 @@
         }
         
         .light-theme .dropdown-bg {
-            background-color: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.45);
         }
         
         .light-theme .result-text-miss {
-            color: #41ea98;
+            color: #34ba79;
         }
         
-        /* 深色主题 */
+        /* 深色主题 - 午夜苍穹（Deep Grey + Blue Purple）*/
         .dark-theme {
-            background-color: #1b1e26;
+            background: 
+                radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(31, 41, 55, 1) 0%, transparent 100%),
+                #030712;
             color: #fafafa;
         }
         
         .dark-theme .search-box {
-            background-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: #fafafa;
         }
         
@@ -75,11 +92,14 @@
         }
         
         .dark-theme .dropdown-bg {
-            background-color: rgba(35, 38, 46, 0.98);
+            background: rgba(35, 38, 46, 0.75);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
         }
         
         .dark-theme .result-text-miss {
-            color: #41ea98;
+            color: #34ba79;
         }
         
         /* 主题切换按钮 */
@@ -114,10 +134,37 @@
         
         /* 结果区域固定高度容器 - 防止跳动 */
         .result-fixed-container {
-            height: 120px;
+            height: 140px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin-top: 40px;
+        }
+        
+        /* 标题文字微弱阴影 - 从复杂背景中浮现 */
+        .title-text-shadow {
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        
+        .dark-theme .title-text-shadow {
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* 主页跳转按钮样式 */
+        .home-btn {
+            background-color: rgba(255, 241, 242, 0.8);
+            color: #ff2442;
+            transition: all 0.3s ease;
+        }
+        
+        .light-theme .home-btn:hover {
+            box-shadow: 0 10px 15px -3px rgba(255, 36, 66, 0.1);
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        .dark-theme .home-btn:hover {
+            box-shadow: 0 10px 15px -3px rgba(255, 36, 66, 0.2);
+            transform: translateY(-2px) scale(1.02);
         }
     </style>
 </head>
@@ -128,51 +175,51 @@
        <span id="theme-text" class="ml-2">浅色模式</span>
     </button>
     
-   <!-- 主容器 - 严格居中 -->
+    <!-- 主容器 - 严格居中 -->
     <div class="w-full flex flex-col items-center" style="margin-top: -40px;">
-       <!-- 标题区域 - 🍠 大图标 + 标题 + 副标题 -->
-       <div class="mb-12 text-center">
-            <!-- 🍠 大图标 -->
-            <div class="text-6xl mb-4">🍠</div>
+        <!-- 标题区域 - 🍠 大图标 + 标题 + 副标题 -->
+        <div class="mb-12 text-center">
+            <!-- 🔍 大图标 -->
+            <div class="text-6xl mb-4">🔍</div>
             <!-- 主标题 -->
-           <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">KOC号段查重工具</h1>
+           <h1 class="text-2xl md:text-3xl font-bold tracking-wide mb-4">小红书 KOC 号段查重工具</h1>
             <!-- 副标题 -->
-            <p class="text-sm opacity-40">输入昵称快速查询是否已建联</p>
+           <p class="text-sm opacity-40">输入昵称快速查询是否已建联</p>
         </div>
         
-        <!-- 搜索框 - 精致胶囊状 -->
-        <div class="relative mb-0" style="width: 380px;">
+        <!-- 搜索框容器 -->
+        <div class="relative w-full" style="max-width: 380px;">
+            <!-- 搜索框 - 精致胶囊状 -->
             <input 
                 type="text" 
                 id="search-input" 
                 placeholder="请输入小红书昵称" 
                 class="search-box w-full px-6 py-4 pr-12 rounded-full text-base outline-none theme-transition"
-                style="border-radius: 9999px;"
                 autocomplete="off"
             >
-            <svg class="absolute right-5 top-1/2 transform -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
-               <circle cx="11" cy="11" r="8"></circle>
-               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+           <svg class="absolute right-5 top-1/2 transform -translate-y-1/2" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.4;">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-        </div>
-        
-        <!-- 联想下拉列表 -->
-        <div id="suggestions-dropdown" class="hidden absolute left-0 right-0 mt-2 rounded-xl shadow-2xl dropdown-bg z-50 max-h-72 overflow-y-auto" style="max-width: 380px; margin-left: auto; margin-right: auto;">
-           <!-- 动态填充 -->
+            
+           <!-- 联想下拉列表 - 固定在搜索框正下方 -->
+            <div id="suggestions-dropdown" class="hidden absolute top-full left-0 mt-2 rounded-xl shadow-2xl dropdown-bg z-50 max-h-72 overflow-y-auto" style="width: 100%;">
+               <!-- 动态填充 -->
+            </div>
         </div>
         
         <!-- 结果展示区域 - 固定高度预留空间 -->
-        <div class="result-fixed-container">
+       <div class="result-fixed-container">
             <div id="result-container" class="w-full" style="max-width: 380px;">
                 <!-- 动态填充 -->
             </div>
         </div>
     </div>
     
-   <!-- 底部说明 -->
+    <!-- 底部说明 -->
     <div class="absolute bottom-6 text-center text-xs opacity-25">
-        <p id="data-update-time"></p>
-        <p class="mt-1">数据来源于 data.csv · 每次打开自动刷新</p>
+       <p id="data-update-time"></p>
+       <p class="mt-1">数据来源于 data.csv · 每次打开自动刷新</p>
     </div>
 
     <script>
@@ -226,7 +273,116 @@
             }
         }
         
-      
+        // 设置事件监听
+        function setupEventListeners() {
+            // 输入框实时联想
+            searchInput.addEventListener('input', handleInput);
+            
+            // 回车键查询
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+            
+            // 点击外部关闭下拉列表
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !suggestionsDropdown.contains(e.target)) {
+                    hideSuggestions();
+                }
+            });
+            
+            // 主题切换
+            themeToggle.addEventListener('click', toggleTheme);
+        }
+        
+        // 处理输入（联想）
+        function handleInput(e) {
+            const query = e.target.value.trim();
+            
+            if (query.length === 0) {
+                hideSuggestions();
+                return;
+            }
+            
+            // 模糊匹配：昵称包含输入字符
+            const matches = kocData.filter(item => 
+                item['昵称'].toLowerCase().includes(query.toLowerCase())
+            ).slice(0, 10);
+            
+            if (matches.length > 0) {
+                showSuggestions(matches, query);
+            } else {
+                hideSuggestions();
+            }
+        }
+        
+        // 显示联想列表
+        function showSuggestions(matches, query) {
+            suggestionsDropdown.innerHTML = '';
+            
+            matches.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'px-5 py-3.5 cursor-pointer transition-all duration-150 border-b border-opacity-5 border-gray-500 last:border-b-0 text-left';
+                
+                const darkMode = currentTheme === 'dark';
+                div.style.color = darkMode ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.75)';
+                div.style.fontSize = '14px';
+                
+                div.onmouseenter = () => {
+                    div.style.backgroundColor = darkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+                };
+                
+                div.onmouseleave = () => {
+                    div.style.backgroundColor = 'transparent';
+                };
+                
+                // 高亮匹配部分
+                const nickname = item['昵称'];
+                const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                const highlighted = nickname.replace(regex, '<span style="color: #ff2442; font-weight: 500;">$1</span>');
+                
+                div.innerHTML = `<span>${highlighted}</span>`;
+                
+                div.addEventListener('click', () => {
+                    searchInput.value = nickname;
+                    hideSuggestions();
+                    performSearch(nickname);
+                });
+                
+                suggestionsDropdown.appendChild(div);
+            });
+            
+            suggestionsDropdown.classList.remove('hidden');
+        }
+        
+        // 隐藏联想列表
+        function hideSuggestions() {
+            suggestionsDropdown.classList.add('hidden');
+        }
+        
+        // 处理查询
+        function handleSearch() {
+            const query = searchInput.value.trim();
+            if (query.length === 0) {
+                showResult('warning', '请输入昵称');
+                return;
+            }
+            hideSuggestions();
+            performSearch(query);
+        }
+        
+        // 执行精确匹配查询
+        function performSearch(query) {
+            const exactMatch = kocData.find(item => item['昵称'] === query);
+            
+            if (exactMatch) {
+                showResult('hit', exactMatch);
+            } else {
+                showResult('miss', null, query);
+            }
+        }
+        
         // 显示结果
         function showResult(type, data, query = '') {
             resultContainer.innerHTML = '';
@@ -238,16 +394,15 @@
                 // 已建联：红色状态文字 + 浅粉色按钮
                 resultDiv.innerHTML = `
                    <p style="color: #ff2442; font-size: 17px; font-weight: 600; margin-bottom: 16px;">📨该号段已在库内，继续找号吧！</p>
-                   <a 
+                    <a 
                         href="${data['主页链接']}" 
                         target="_blank" 
-                        class="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transition-all duration-200 btn-hover-scale"
-                        style="background-color: #FFF1F2; color: #ff2442; box-shadow: 0 2px 8px rgba(255, 36, 66, 0.15);"
+                        class="home-btn inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium btn-hover-scale"
                     >
                         <span>点击访问小红书主页</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
-                            <polyline points="15 3 21 3 21 9"></polyline>
+                           <polyline points="15 3 21 3 21 9"></polyline>
                             <line x1="10" y1="14" x2="21" y2="3"></line>
                         </svg>
                     </a>
@@ -261,7 +416,7 @@
                 `;
             } else if (type === 'warning') {
                 resultDiv.innerHTML = `
-                    <p style="color: ${currentTheme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}; font-size: 15px;">
+                   <p style="color: ${currentTheme === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'}; font-size: 15px;">
                         ${data}
                     </p>
                 `;
